@@ -187,7 +187,7 @@ Rules for the tools:
 
 ## 6. Install and configuration
 
-Claude Code (local build, until it is on npm):
+Claude Code (local build, for development):
 
 ```sh
 claude mcp add images -e IMAGEGEN_PROVIDER=codex-cli -- node /path/to/codex-openai-image-mcp/dist/index.js
@@ -225,8 +225,9 @@ stay the same in an edit).
    **Done**, tested against a fake client only. A live check reached the API (key accepted, account
    without credits) and live testing was then skipped by decision; the README says so.
 6. **M5 – Release.** Done so far: name, MIT licence, public README with real examples, CI
-   (Linux and macOS, Node 20/22/24). Still to do: GitHub repo, npm publish, MCP registry listing;
-   nice to have: `list_providers`, per-session cost guard, an installer for more clients.
+   (Linux and macOS, Node 20/22/24), public GitHub repo, npm 0.1.0. 0.1.1 adds `mcpName` and
+   `server.json` (`io.github.meet30997/codex-openai-image-mcp`) for the MCP registry listing.
+   Nice to have: `list_providers`, per-session cost guard, an installer for more clients.
 7. **Later:** more providers (Gemini, Stability, a local model), background removal without a
    model call, upscaling, tileable textures, sprite sheets, a contact sheet to compare variants,
    optional size presets (app icons, social cards, favicons) for people who want them.

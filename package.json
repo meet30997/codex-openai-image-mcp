@@ -1,6 +1,7 @@
 {
   "name": "codex-openai-image-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "mcpName": "io.github.meet30997/codex-openai-image-mcp",
   "description": "MCP server that lets Claude and other AI agents generate, edit and make matching sets of images, using the Codex CLI (your ChatGPT plan, no API key) or the OpenAI Images API.",
   "keywords": [
     "mcp",

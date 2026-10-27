@@ -1,0 +1,39 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.meet30997/codex-openai-image-mcp",
+  "title": "Codex / OpenAI Image",
+  "description": "Generate, edit and make matching sets of images with the Codex CLI or the OpenAI Images API",
+  "repository": {
+    "url": "https://github.com/meet30997/codex-openai-image-mcp",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "codex-openai-image-mcp",
+      "version": "0.1.1",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        {
+          "name": "IMAGEGEN_PROVIDER",
+          "description": "Image backend: codex-cli (your ChatGPT plan via the Codex CLI), openai-api, or mock",
+          "isRequired": true,
+          "default": "codex-cli",
+          "choices": ["codex-cli", "openai-api", "mock"]
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "description": "OpenAI API key, only needed for the openai-api backend",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "IMAGEGEN_OUT_DIR",
+          "description": "Folder for generated images, relative to the working folder (default generated-images)",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}
