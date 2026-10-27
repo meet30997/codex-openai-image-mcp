@@ -1,5 +1,7 @@
 # codex-openai-image-mcp
 
+![codex-openai-image-mcp: generate, edit and make matching image sets from any MCP client. Works with Codex CLI or an OpenAI API key.](docs/social-preview.jpg)
+
 An [MCP](https://modelcontextprotocol.io) server that lets Claude (and any other MCP client)
 **generate images, edit them, and make matching sets**, then look at the result and keep going.
 
