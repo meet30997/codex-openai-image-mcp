@@ -41,7 +41,7 @@ Other people get the same thing from one install command.
 
 - Generate images from a prompt, any size, optionally with style reference images. **Done.**
 - Edit an existing image with an instruction (change, remove, restyle, cut out). **Done.**
-- Sets: several related images in one call, sharing a style.
+- Sets: several related images in one call, sharing a style. **Done.**
 - More than one backend, chosen by config.
 - Return saved file paths **and** a small preview, so Claude can look at the result. **Done.**
 
@@ -57,7 +57,7 @@ Other people get the same thing from one install command.
 
 ```
 Claude ──MCP (stdio)──▶ imagegen-mcp
-                          ├─ tools/        generate_image, edit_image (+ shared run/save loop)
+                          ├─ tools/        generate_image, edit_image, generate_set (+ shared run/save loop)
                           ├─ providers/    interface + backends
                           │    ├─ codex-cli    (shells out to `codex exec`, uses the Codex sign-in)   done
                           │    ├─ mock         (placeholder images, for tests and demos)               done
@@ -77,8 +77,12 @@ interface Provider {
   capabilities: { edit: boolean; references: boolean; transparent: boolean; sizes: string[] };
   generate(req: GenerateRequest, signal: AbortSignal, progress: ProgressFn): Promise<RawImage[]>;
   edit?(req: EditRequest, signal: AbortSignal, progress: ProgressFn): Promise<RawImage[]>;
+  generateSet?(req: SetRequest, signal: AbortSignal, progress: ProgressFn): Promise<RawImage[]>;
 }
 ```
+
+A provider without `generateSet` still supports sets: the tool makes the items one by one and,
+when the provider takes references, passes the first image as an extra style reference.
 
 Backends return images at their native size; the tool layer crops to fill and resizes to the size
 asked for, and notes it in the result (and notes a missing alpha channel when transparency was
@@ -107,6 +111,8 @@ asked for).
   heartbeat every 10 s that also reports images as they appear.
 - Edits attach the target as Image 1 and any supporting images after it; the prompt says which is
   which and what must stay unchanged. No masks: the built-in tool doesn't take them.
+- Sets run in one session (one `image_gen` call per item, in order). Images are matched to items
+  by creation order only when the count matches; otherwise they are saved as `unmatched-N`.
 - Cancel or timeout kills the whole process group.
 - Output sizes are Codex's choice (seen: 1254×1254, 1672×941); the server resizes.
 
@@ -123,7 +129,7 @@ memory.
 | --- | --- | --- | --- |
 | `generate_image` | `prompt`, `size?`, `count?` (1–4), `references?`, `transparent?`, `out_name?` | Saved paths + previews | Done |
 | `edit_image` | `image`, `prompt`, `size?` (default: input size), `count?`, `references?`, `transparent?`, `out_name?` (default `<input>-edited`) | Saved paths + previews | Done |
-| `generate_set` | `style` (shared description), `items[]` (`{name, prompt}`), `references?`, `size?` | One image per item, same style | Next |
+| `generate_set` | `style`, `items[]` (1–8 `{name, prompt}`), `size?`, `transparent?`, `references?`, `folder?` | One file per item, named after it | Done |
 | `list_providers` | none | Configured backend and its capabilities | Planned |
 
 Rules for the tools:
@@ -131,7 +137,8 @@ Rules for the tools:
 - **Previews:** return a downscaled (512 px long edge) copy as MCP image content so Claude can
   judge the result without reading big files. Full-size files are returned only as paths.
 - **Progress:** send MCP progress notifications while a backend runs; silence looks like a hang.
-- **Cancellation and timeouts:** honour the request's abort signal; default timeout 5 minutes.
+- **Cancellation and timeouts:** honour the request's abort signal; timeout 5 minutes per image
+  asked for.
 - **Errors:** clear, actionable messages ("Codex is not signed in: run `codex login`", "Codex CLI
   not found … set IMAGEGEN_CODEX_BIN", what the model said when it refused).
 - **Originals are never changed:** edits always write a new file.
@@ -148,7 +155,7 @@ Rules for the tools:
 - **Sidecar metadata:** `<name>.json` next to each image with the prompt, provider, model, size,
   references, source image (for edits) and time.
 - **Secrets:** API keys from the environment only; never logged or written to sidecars.
-- **Cost guard:** `IMAGEGEN_MAX_PER_CALL` (default 4). Still to add: an optional per-session limit
+- **Cost guard:** `IMAGEGEN_MAX_PER_CALL` (default 8). Still to add: an optional per-session limit
   so a looping agent can't burn through quota.
 - **Honest labelling:** the README says images are AI-generated; users are responsible for how
   they use them and for not imitating real brands or people.
@@ -189,7 +196,7 @@ stay the same in an edit).
    error messages. **Done**, verified with real runs.
 3. **M2 – `edit_image`.** Edits on Codex and mock, read sandbox, originals untouched. **Done**.
 4. **M3 – `generate_set`.** Matching sets in one call; Codex runs one session so the images share
-   context, then each item is saved under its own name.
+   context, then each item is saved under its own name. **Done.**
 5. **M4 – OpenAI Images API backend.** For users without Codex; adds mask support for edits.
 6. **M5 – Release.** `list_providers`, per-session cost guard, README with screenshots, npm
    publish, MCP registry listing, a short demo.

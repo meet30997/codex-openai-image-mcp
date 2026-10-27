@@ -1,8 +1,8 @@
 # imagegen-mcp
 
 An MCP server that lets Claude generate images and save them as local files. See
-[PLAN.md](PLAN.md) for the roadmap. Done so far: the `generate_image` and `edit_image` tools,
-with two backends:
+[PLAN.md](PLAN.md) for the roadmap. Done so far: the `generate_image`, `edit_image` and
+`generate_set` tools, with two backends:
 
 - **`codex-cli`**: real images through the Codex CLI's built-in `image_gen` tool, using your
   ChatGPT/Codex sign-in (no API key). Roughly 30–60 s per image.
@@ -27,7 +27,8 @@ claude mcp add imagegen -e IMAGEGEN_PROVIDER=codex-cli -- node /Users/meet/Devel
 Leave out `-e IMAGEGEN_PROVIDER=codex-cli` to use the mock provider.
 
 Then ask Claude things like *"make a watercolour fox for my blog header, 1536x1024"* or
-*"edit photo.png so it's a sunset"*.
+*"edit photo.png so it's a sunset"* or *"make 5 matching sticker icons: coffee, cactus, moon,
+cloud, cat"*.
 Images are written to `./generated-images` in the directory Claude Code was started from.
 
 ## Tool: `generate_image`
@@ -59,6 +60,25 @@ Images are cropped to fill and resized to exactly `size`. Returns the saved path
 
 The sidecar records the source image as well as the prompt.
 
+## Tool: `generate_set`
+
+Several different images that share one style (icons, stickers, badges, character portraits,
+story illustrations).
+
+| Input | Default | Notes |
+| --- | --- | --- |
+| `style` | required | What every image shares: medium, palette, rendering, background |
+| `items` | required | 1–8 `{ name, prompt }`; each is saved as `<folder>/<slug of name>.png` |
+| `size` | `1024x1024` | Same for every image |
+| `transparent` | `false` | |
+| `references` | `[]` | Up to 4 images whose style the whole set matches |
+| `folder` | slug of `style` | Relative to the output folder |
+
+With `codex-cli` the whole set is made in one Codex session, so the images share context. Images
+are matched to items in the order they were made; if Codex makes fewer than asked, the extras are
+saved as `unmatched-N.png` rather than guessing. Other backends make the items one by one and use
+the first image as an extra style reference for the rest.
+
 ## Settings (environment variables)
 
 | Variable | Default |
@@ -67,8 +87,8 @@ The sidecar records the source image as well as the prompt.
 | `IMAGEGEN_OUT_DIR` | `generated-images` (relative to the working directory) |
 | `IMAGEGEN_READ_ROOT` | the working directory; reference images must be inside it |
 | `IMAGEGEN_CODEX_BIN` | `codex` |
-| `IMAGEGEN_TIMEOUT_SEC` | `300` |
-| `IMAGEGEN_MAX_PER_CALL` | `4` |
+| `IMAGEGEN_TIMEOUT_SEC` | `300`, per image asked for |
+| `IMAGEGEN_MAX_PER_CALL` | `8` |
 | `IMAGEGEN_PREVIEW_SIZE` | `512` |
 
 ## How the Codex backend works

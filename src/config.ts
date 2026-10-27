@@ -36,7 +36,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
     outDir: path.resolve(cwd, env.IMAGEGEN_OUT_DIR ?? "generated-images"),
     readRoot: path.resolve(cwd, env.IMAGEGEN_READ_ROOT ?? "."),
     timeoutSec: positiveInt("IMAGEGEN_TIMEOUT_SEC", env.IMAGEGEN_TIMEOUT_SEC, 300),
-    maxPerCall: positiveInt("IMAGEGEN_MAX_PER_CALL", env.IMAGEGEN_MAX_PER_CALL, 4),
+    maxPerCall: positiveInt("IMAGEGEN_MAX_PER_CALL", env.IMAGEGEN_MAX_PER_CALL, 8),
     previewSize: positiveInt("IMAGEGEN_PREVIEW_SIZE", env.IMAGEGEN_PREVIEW_SIZE, 512),
     codexBin: env.IMAGEGEN_CODEX_BIN || "codex",
   };

@@ -80,6 +80,25 @@ describe("codex-cli provider", () => {
     expect(prompt).toContain("Keep everything else in Image 1 the same");
   });
 
+  it("makes a set in one session and matches images to items in order", async () => {
+    const setReq = { style: "flat icons", items: [{ name: "a", prompt: "apple" }, { name: "b", prompt: "boat" }], width: 512, height: 512, transparent: false, references: [] };
+    const images = await provider("ok").generateSet!(setReq, new AbortController().signal, () => {});
+    expect(images.map((i) => i.item)).toEqual([0, 1]);
+    const { prompt } = await lastCall();
+    expect(prompt).toContain("set of 2 images");
+    expect(prompt).toContain("1. a: apple");
+    expect(prompt).toContain("2. b: boat");
+    expect(prompt).toContain("flat icons");
+  });
+
+  it("leaves set images unmatched when Codex makes fewer than asked", async () => {
+    const setReq = { style: "s", items: [{ name: "a", prompt: "x" }, { name: "b", prompt: "y" }], width: 512, height: 512, transparent: false, references: [] };
+    const p = createCodexProvider({ bin: FAKE, codexHome, env: { FAKE_CODEX_MODE: "ok", FAKE_CODEX_SRC: src, FAKE_CODEX_COUNT: "1" } });
+    const images = await p.generateSet!(setReq, new AbortController().signal, () => {});
+    expect(images).toHaveLength(1);
+    expect(images[0].item).toBeUndefined();
+  });
+
   it("reports Codex's message when no image was made", async () => {
     await expect(provider("none").generate(req(), new AbortController().signal, () => {})).rejects.toThrow(
       /without generating an image.*I can't help/,

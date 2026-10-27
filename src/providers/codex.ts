@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import readline from "node:readline";
-import type { EditRequest, GenerateRequest, ProgressFn, Provider, RawImage } from "./types.js";
+import type { EditRequest, GenerateRequest, ProgressFn, Provider, RawImage, SetRequest } from "./types.js";
 
 export interface CodexOptions {
   bin: string;
@@ -37,6 +37,28 @@ export function buildCodexPrompt(req: GenerateRequest): string {
     lines.push(`The ${req.references.length} attached image(s) are style references: match their art style, palette and rendering, but draw the new subject described above.`);
   }
   if (req.count > 1) lines.push("Make the variants meaningfully different from each other while following the description.");
+  lines.push(...RULES);
+  return lines.join("\n");
+}
+
+export function buildCodexSetPrompt(req: SetRequest): string {
+  const n = req.items.length;
+  const lines = [
+    `Use your built-in image_gen tool to make a set of ${n} images that clearly belong together. Make exactly one image_gen call per item, in the order listed.`,
+    "",
+    "Shared style for every image in the set:",
+    req.style,
+    "",
+    "Items:",
+    ...req.items.map((it, i) => `${i + 1}. ${it.name}: ${it.prompt}`),
+    "",
+    "Keep the art style, palette, rendering, lighting, line weight and framing consistent across all images, so they look like one set; only the subject changes.",
+    `Shape: ${describeShape(req.width, req.height)}. Final size will be ${req.width}x${req.height} px.`,
+  ];
+  if (req.transparent) lines.push("Background: fully transparent (keep the alpha channel), no backdrop or shadow plate.");
+  if (req.references.length) {
+    lines.push(`The ${req.references.length} attached image(s) are style references for the whole set: match their style, but draw the subjects listed above.`);
+  }
   lines.push(...RULES);
   return lines.join("\n");
 }
@@ -109,6 +131,13 @@ export function createCodexProvider(opts: CodexOptions): Provider {
 
     generate(req, signal, progress) {
       return runCodex(opts, { prompt: buildCodexPrompt(req), images: req.references, count: req.count }, signal, progress);
+    },
+
+    async generateSet(req, signal, progress) {
+      const job = { prompt: buildCodexSetPrompt(req), images: req.references, count: req.items.length };
+      const images = await runCodex(opts, job, signal, progress);
+      // Images come back in creation order; that only matches the items if none were skipped.
+      return images.length === req.items.length ? images.map((img, i) => ({ ...img, item: i })) : images;
     },
 
     edit(req, signal, progress) {

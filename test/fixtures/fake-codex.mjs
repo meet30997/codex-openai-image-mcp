@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Stand-in for `codex exec --json` used by the tests. Behaviour is chosen with FAKE_CODEX_MODE:
-//   ok     write N copies of FAKE_CODEX_SRC into $CODEX_HOME/generated_images/<thread>/
+//   ok     write N copies of FAKE_CODEX_SRC into $CODEX_HOME/generated_images/<thread>/, where N
+//          comes from the prompt, or FAKE_CODEX_COUNT if set
 //   none   write nothing and reply with a refusal message
 //   login  print a sign-in error and exit 1
 //   hang   never finish (for cancellation tests)
@@ -28,7 +29,7 @@ if (mode === "hang") {
   setInterval(() => {}, 1000);
 } else {
   if (mode === "ok") {
-    const count = Number(/exactly (\d+) image/.exec(prompt)?.[1] ?? 1);
+    const count = Number(process.env.FAKE_CODEX_COUNT ?? /(?:exactly|set of) (\d+) image/.exec(prompt)?.[1] ?? 1);
     const dir = path.join(home, "generated_images", thread);
     fs.mkdirSync(dir, { recursive: true });
     for (let i = 0; i < count; i++) fs.copyFileSync(process.env.FAKE_CODEX_SRC, path.join(dir, `exec-${i}.png`));

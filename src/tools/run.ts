@@ -47,9 +47,15 @@ export function errorResult(message: string): CallToolResult {
   return { isError: true, content: [{ type: "text", text: message }] };
 }
 
+/** Names variants `<base>-v1`, `<base>-v2`, … when there is more than one image. */
+export function variantNames(base: string, meta: SidecarMeta) {
+  return (i: number, total: number) => ({ name: total > 1 ? `${base}-v${i + 1}` : base, meta });
+}
+
 /**
- * Runs a provider call with progress notifications, cancellation and the configured timeout, then
- * resizes, saves (with sidecars) and previews every image it returns.
+ * Runs a provider call with progress notifications, cancellation and a timeout of
+ * IMAGEGEN_TIMEOUT_SEC per requested image, then resizes, saves (with sidecars) and previews every
+ * image it returns.
  */
 export async function runAndSave(opts: {
   config: Config;
@@ -58,11 +64,11 @@ export async function runAndSave(opts: {
   /** Verb for the summary line, e.g. "Generated". */
   verb: string;
   count: number;
-  outName: string;
-  meta: SidecarMeta;
+  /** File name (relative to the output folder, no extension) and sidecar for the i-th image. */
+  output: (i: number, total: number, image: RawImage) => { name: string; meta: SidecarMeta; note?: string };
   call: (signal: AbortSignal, progress: ProgressFn) => Promise<RawImage[]>;
 }): Promise<CallToolResult> {
-  const { config, provider, extra, meta } = opts;
+  const { config, provider, extra } = opts;
 
   const progressToken = extra._meta?.progressToken;
   let step = 0;
@@ -76,14 +82,15 @@ export async function runAndSave(opts: {
       .catch(() => {});
   };
 
-  const timeout = AbortSignal.timeout(config.timeoutSec * 1000);
+  const timeoutSec = config.timeoutSec * opts.count;
+  const timeout = AbortSignal.timeout(timeoutSec * 1000);
   const signal = AbortSignal.any([extra.signal, timeout]);
 
   let images;
   try {
     images = await opts.call(signal, progress);
   } catch (err) {
-    if (timeout.aborted) return errorResult(`${provider.name} timed out after ${config.timeoutSec}s (IMAGEGEN_TIMEOUT_SEC).`);
+    if (timeout.aborted) return errorResult(`${provider.name} timed out after ${timeoutSec}s (IMAGEGEN_TIMEOUT_SEC per image).`);
     if (extra.signal.aborted) return errorResult("Cancelled.");
     return errorResult(`${provider.name} failed: ${(err as Error).message}`);
   }
@@ -92,10 +99,11 @@ export async function runAndSave(opts: {
   const lines: string[] = [];
   try {
     for (const [i, raw] of images.entries()) {
+      const { name, meta, note: outNote } = opts.output(i, images.length, raw);
       const { image, note } = await fitToSize(raw, meta.width, meta.height, meta.transparent);
-      const name = images.length > 1 ? `${opts.outName}-v${i + 1}` : opts.outName;
       const saved = await saveImage(config.outDir, name, image, meta);
-      lines.push(`${saved.path} (${saved.width}x${saved.height})${note ? ` - ${note}` : ""}`);
+      const notes = [outNote, note].filter(Boolean).join("; ");
+      lines.push(`${saved.path} (${saved.width}x${saved.height})${notes ? ` - ${notes}` : ""}`);
       const preview = await makePreview(image.data, config.previewSize);
       content.push({ type: "image", data: preview.data, mimeType: preview.mimeType });
     }

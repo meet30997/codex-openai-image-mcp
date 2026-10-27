@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { Config } from "../config.js";
 import { resolveReadable, slugify } from "../files/sandbox.js";
 import type { Provider } from "../providers/types.js";
-import { errorResult, parseSize, runAndSave } from "./run.js";
+import { errorResult, parseSize, runAndSave, variantNames } from "./run.js";
 
 export function registerEditImage(server: McpServer, config: Config, provider: Provider): void {
   server.registerTool(
@@ -80,8 +80,7 @@ export function registerEditImage(server: McpServer, config: Config, provider: P
         extra,
         verb: "Edited",
         count,
-        outName: out_name ?? `${stem}-edited`,
-        meta: { prompt, provider: provider.name, ...dims, transparent, references, source: image },
+        output: variantNames(out_name ?? `${stem}-edited`, { prompt, provider: provider.name, ...dims, transparent, references, source: image }),
         call: (signal, progress) =>
           edit.call(provider, { image: source, prompt, ...dims, count, transparent, references: refPaths }, signal, progress),
       });

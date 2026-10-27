@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { Config } from "../config.js";
 import { resolveReadable, slugify } from "../files/sandbox.js";
 import type { Provider } from "../providers/types.js";
-import { errorResult, parseSize, runAndSave } from "./run.js";
+import { errorResult, parseSize, runAndSave, variantNames } from "./run.js";
 
 export function registerGenerateImage(server: McpServer, config: Config, provider: Provider): void {
   server.registerTool(
@@ -53,8 +53,7 @@ export function registerGenerateImage(server: McpServer, config: Config, provide
         extra,
         verb: "Generated",
         count,
-        outName: out_name ?? slugify(prompt),
-        meta: { prompt, provider: provider.name, ...dims, transparent, references },
+        output: variantNames(out_name ?? slugify(prompt), { prompt, provider: provider.name, ...dims, transparent, references }),
         call: (signal, progress) =>
           provider.generate({ prompt, ...dims, count, transparent, references: refPaths }, signal, progress),
       });
