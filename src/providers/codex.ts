@@ -127,7 +127,7 @@ function hintFor(stderr: string): string {
 export function createCodexProvider(opts: CodexOptions): Provider {
   return {
     name: "codex-cli",
-    capabilities: { edit: true, references: true, transparent: true, sizes: ["any"] },
+    capabilities: { edit: true, references: true, transparent: true, mask: false, sizes: ["any"] },
 
     generate(req, signal, progress) {
       return runCodex(opts, { prompt: buildCodexPrompt(req), images: req.references, count: req.count }, signal, progress);

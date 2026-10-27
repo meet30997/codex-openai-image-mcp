@@ -11,6 +11,8 @@ export interface GenerateRequest {
 export interface EditRequest extends GenerateRequest {
   /** Absolute path of the image to change, already checked against the read sandbox. */
   image: string;
+  /** Absolute path of a mask whose transparent areas mark where to edit. */
+  mask?: string;
 }
 
 export interface SetItem {
@@ -41,7 +43,7 @@ export type ProgressFn = (message: string) => void;
 
 export interface Provider {
   name: string;
-  capabilities: { edit: boolean; references: boolean; transparent: boolean; sizes: string[] };
+  capabilities: { edit: boolean; references: boolean; transparent: boolean; mask: boolean; sizes: string[] };
   generate(req: GenerateRequest, signal: AbortSignal, progress: ProgressFn): Promise<RawImage[]>;
   edit?(req: EditRequest, signal: AbortSignal, progress: ProgressFn): Promise<RawImage[]>;
   /** Makes a matching set in one go. Without it, sets are made one item at a time. */

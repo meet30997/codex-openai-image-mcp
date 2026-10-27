@@ -28,6 +28,10 @@ export function registerEditImage(server: McpServer, config: Config, provider: P
           .string()
           .optional()
           .describe('Output size as width x height in px, e.g. "1024x1024". Defaults to the size of the input image.'),
+        mask: z
+          .string()
+          .optional()
+          .describe("Optional PNG whose transparent areas mark where to edit (openai-api only). Resized to the image if needed."),
         count: z.number().int().min(1).max(4).default(1).describe("Number of edited variants (1-4)."),
         transparent: z.boolean().default(false).describe("Ask for a transparent background, e.g. for a cutout."),
         references: z
@@ -42,13 +46,14 @@ export function registerEditImage(server: McpServer, config: Config, provider: P
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     },
-    async ({ image, prompt, size, count, transparent, references, out_name }, extra): Promise<CallToolResult> => {
+    async ({ image, prompt, size, mask, count, transparent, references, out_name }, extra): Promise<CallToolResult> => {
       const edit = provider.edit;
       if (!edit || !provider.capabilities.edit) {
         return errorResult(`The ${provider.name} provider does not support editing images.`);
       }
 
       let source: string;
+      let maskPath: string | undefined;
       let dims: { width: number; height: number };
       const refPaths: string[] = [];
       try {
@@ -66,6 +71,10 @@ export function registerEditImage(server: McpServer, config: Config, provider: P
           throw new Error(`The ${provider.name} provider does not support reference images.`);
         }
         for (const r of references) refPaths.push(await resolveReadable(config.readRoot, r));
+        if (mask) {
+          if (!provider.capabilities.mask) throw new Error(`The ${provider.name} provider does not support masks; describe the area in the prompt instead.`);
+          maskPath = await resolveReadable(config.readRoot, mask);
+        }
       } catch (err) {
         return errorResult((err as Error).message);
       }
@@ -80,9 +89,9 @@ export function registerEditImage(server: McpServer, config: Config, provider: P
         extra,
         verb: "Edited",
         count,
-        output: variantNames(out_name ?? `${stem}-edited`, { prompt, provider: provider.name, ...dims, transparent, references, source: image }),
+        output: variantNames(out_name ?? `${stem}-edited`, { prompt, provider: provider.name, ...dims, transparent, references, source: image, mask }),
         call: (signal, progress) =>
-          edit.call(provider, { image: source, prompt, ...dims, count, transparent, references: refPaths }, signal, progress),
+          edit.call(provider, { image: source, mask: maskPath, prompt, ...dims, count, transparent, references: refPaths }, signal, progress),
       });
     },
   );

@@ -61,7 +61,7 @@ Claude ──MCP (stdio)──▶ imagegen-mcp
                           ├─ providers/    interface + backends
                           │    ├─ codex-cli    (shells out to `codex exec`, uses the Codex sign-in)   done
                           │    ├─ mock         (placeholder images, for tests and demos)               done
-                          │    └─ openai-api   (Images API, needs OPENAI_API_KEY)                      next
+                          │    └─ openai-api   (Images API, needs OPENAI_API_KEY)                      done
                           └─ files/        output sandbox, read sandbox, naming, sidecars, previews
 ```
 
@@ -93,7 +93,7 @@ asked for).
 | Backend | Pros | Cons |
 | --- | --- | --- |
 | **Codex CLI** (done) | Uses an existing Codex/ChatGPT sign-in, no API key, supports references and edits | ~30–60 s per image, needs Codex installed and signed in, CLI flags may change between versions |
-| **OpenAI Images API** (next) | Fast, predictable, returns bytes directly, masks for edits | Needs an API key; paid per image |
+| **OpenAI Images API** (done) | Predictable, returns bytes directly, masks for edits, works for anyone with a key | Needs an API key; paid per image |
 | **Mock** (done) | Free, instant, deterministic | Not real images |
 
 ### How the Codex backend works (verified with codex-cli 0.164.0)
@@ -116,7 +116,20 @@ asked for).
 - Cancel or timeout kills the whole process group.
 - Output sizes are Codex's choice (seen: 1254×1254, 1672×941); the server resizes.
 
-Still to do before publishing it for others: check OpenAI's terms for scripted use of the Codex
+### How the OpenAI backend works (openai SDK 7.45.1, checked 2026-10-27)
+
+- Default model `gpt-image-2.5-sunburst` (quality and editing); `gpt-image-2.5-flare` is the faster
+  option, same price. `gpt-image-1` was shut down on 2026-10-23. Set with `IMAGEGEN_OPENAI_MODEL`.
+- gpt-image-2 and later take any `WxH` with both sides multiples of 16, ratio 1:3–3:1, at most
+  3840x2160 and within pixel limits; older models take 1024x1024, 1536x1024 or 1024x1536. The
+  provider rounds to a valid size; the tool layer resizes to the exact request.
+- `background: "transparent"` with PNG output (in preview on gpt-image-2, supported on 2.5).
+- The generations endpoint takes no images, so generation with references uses the edits
+  endpoint (up to 16 input images). Masks must be PNGs with alpha at the image's size; the
+  provider resizes them.
+- No native set mode: sets use the one-by-one fallback with the first image as an anchor.
+
+Still to do before publishing the Codex backend for others: check OpenAI's terms for scripted use of the Codex
 CLI with a ChatGPT plan, and say in the README which plan or quota it uses. Confirm current model
 names and parameters against provider docs when adding the API backend; don't hard-code them from
 memory.
@@ -178,7 +191,8 @@ claude mcp add imagegen -e IMAGEGEN_PROVIDER=codex-cli -- npx -y imagegen-mcp
 
 Settings (environment variables):
 
-- `IMAGEGEN_PROVIDER`: `mock` (default) | `codex-cli` | later `openai-api`
+- `IMAGEGEN_PROVIDER`: `mock` (default) | `codex-cli` | `openai-api`
+- `OPENAI_API_KEY`, `IMAGEGEN_OPENAI_MODEL` (default `gpt-image-2.5-sunburst`)
 - `IMAGEGEN_OUT_DIR`, `IMAGEGEN_READ_ROOT`, `IMAGEGEN_TIMEOUT_SEC`, `IMAGEGEN_MAX_PER_CALL`,
   `IMAGEGEN_PREVIEW_SIZE`
 - `IMAGEGEN_CODEX_BIN` (default `codex`)
@@ -198,6 +212,8 @@ stay the same in an edit).
 4. **M3 – `generate_set`.** Matching sets in one call; Codex runs one session so the images share
    context, then each item is saved under its own name. **Done.**
 5. **M4 – OpenAI Images API backend.** For users without Codex; adds mask support for edits.
+   **Done**, tested against a fake client. Real-API check pending: on 2026-10-27 the key was
+   accepted but the account had no credits.
 6. **M5 – Release.** `list_providers`, per-session cost guard, README with screenshots, npm
    publish, MCP registry listing, a short demo.
 7. **Later:** more providers (Gemini, Stability, a local model), background removal without a

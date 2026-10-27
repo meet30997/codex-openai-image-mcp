@@ -1,6 +1,7 @@
 import path from "node:path";
+import { DEFAULT_OPENAI_MODEL } from "./providers/openai.js";
 
-export type ProviderName = "mock" | "codex-cli";
+export type ProviderName = "mock" | "codex-cli" | "openai-api";
 
 export interface Config {
   provider: ProviderName;
@@ -13,9 +14,11 @@ export interface Config {
   /** Long edge of preview images returned to the client, in px. */
   previewSize: number;
   codexBin: string;
+  openaiApiKey?: string;
+  openaiModel: string;
 }
 
-const PROVIDERS: readonly ProviderName[] = ["mock", "codex-cli"];
+const PROVIDERS: readonly ProviderName[] = ["mock", "codex-cli", "openai-api"];
 
 function positiveInt(name: string, raw: string | undefined, fallback: number): number {
   if (raw === undefined || raw === "") return fallback;
@@ -39,5 +42,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
     maxPerCall: positiveInt("IMAGEGEN_MAX_PER_CALL", env.IMAGEGEN_MAX_PER_CALL, 8),
     previewSize: positiveInt("IMAGEGEN_PREVIEW_SIZE", env.IMAGEGEN_PREVIEW_SIZE, 512),
     codexBin: env.IMAGEGEN_CODEX_BIN || "codex",
+    openaiApiKey: env.OPENAI_API_KEY || undefined,
+    openaiModel: env.IMAGEGEN_OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
   };
 }

@@ -88,6 +88,12 @@ describe("edit_image (mock provider)", () => {
     }
   });
 
+  it("rejects a mask on a provider without mask support", async () => {
+    const res = await call({ image: "photos/Beach Day.png", prompt: "x", mask: "photos/Beach Day.png" });
+    expect(res.isError).toBe(true);
+    expect((res.content[0] as { text: string }).text).toMatch(/does not support masks/);
+  });
+
   it("rejects references on a provider without reference support", async () => {
     const res = await call({ image: "photos/Beach Day.png", prompt: "x", references: ["photos/Beach Day.png"] });
     expect(res.isError).toBe(true);

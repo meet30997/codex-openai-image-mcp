@@ -32,7 +32,7 @@ function wrap(text: string, max: number, maxLines: number): string[] {
 export function createMockProvider(): Provider {
   return {
     name: "mock",
-    capabilities: { edit: true, references: false, transparent: true, sizes: ["any"] },
+    capabilities: { edit: true, references: false, transparent: true, mask: false, sizes: ["any"] },
 
     async generate(req: GenerateRequest, signal, progress): Promise<RawImage[]> {
       const images: RawImage[] = [];

@@ -13,6 +13,7 @@ export interface SidecarMeta {
   references: string[];
   /** The input image, for edits. */
   source?: string;
+  mask?: string;
   /** For sets: the shared style and this image's item name. */
   style?: string;
   item?: string;

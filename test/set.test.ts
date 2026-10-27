@@ -92,7 +92,7 @@ describe("generateSetOneByOne", () => {
     const seen: boolean[] = [];
     const provider: Provider = {
       name: "fake",
-      capabilities: { edit: false, references: true, transparent: false, sizes: ["any"] },
+      capabilities: { edit: false, references: true, transparent: false, mask: false, sizes: ["any"] },
       async generate(req) {
         calls.push(req);
         for (const r of req.references) seen.push(await fs.access(r).then(() => true, () => false));
