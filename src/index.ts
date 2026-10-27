@@ -8,11 +8,11 @@ try {
   const config = loadConfig();
   const server = createServer(config);
   await server.connect(new StdioServerTransport());
-  console.error(`imagegen-mcp ready (provider: ${config.provider}, output: ${config.outDir})`);
+  console.error(`codex-openai-image-mcp ready (provider: ${config.provider}, output: ${config.outDir})`);
   if (config.provider === "openai-api" && !config.openaiApiKey) {
-    console.error("imagegen-mcp: OPENAI_API_KEY is not set; image calls will fail until it is.");
+    console.error("codex-openai-image-mcp: OPENAI_API_KEY is not set; image calls will fail until it is.");
   }
 } catch (err) {
-  console.error(`imagegen-mcp failed to start: ${(err as Error).message}`);
+  console.error(`codex-openai-image-mcp failed to start: ${(err as Error).message}`);
   process.exit(1);
 }

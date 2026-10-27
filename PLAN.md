@@ -9,7 +9,8 @@ It is a **general-purpose** image tool, not tied to any platform, game engine or
 started from hand-driving the Codex CLI's image generator for a game launch, which showed how much
 of that work (prompt files, waiting blind, finding the output, resizing) a tool can take over.
 
-Working name: `imagegen-mcp`.
+Name: `codex-openai-image-mcp` (npm). Open source under the MIT licence. Not affiliated with
+OpenAI.
 
 ---
 
@@ -25,7 +26,16 @@ Doing it by hand with the Codex CLI meant:
 With an MCP server Claude does all of it in one tool call, shows the result, and can refine it.
 Other people get the same thing from one install command.
 
-**What makes this one worth using** (several image MCP servers already exist):
+**Similar projects** (checked 2026-10-27):
+
+- [`codex-imagegen-mcp`](https://github.com/ShalomObongo/codex-imagegen-mcp) (Apache-2.0): Codex
+  image generation on a ChatGPT plan, generate and edit, transparency, aspect ratios, local
+  background removal, an installer for 25+ clients, and Codex's own prompting skill. The closest
+  match and more polished on setup.
+- `codex-imagegen`: Codex `image_gen` bridge.
+- `imagegen-mcp`: OpenAI Images API only.
+
+**What makes this one worth using:**
 
 1. **No API key needed:** a Codex CLI backend that uses an existing ChatGPT/Codex sign-in, next to
    a normal API-key backend.
@@ -56,7 +66,7 @@ Other people get the same thing from one install command.
 ## 3. Architecture
 
 ```
-Claude ──MCP (stdio)──▶ imagegen-mcp
+Claude ──MCP (stdio)──▶ codex-openai-image-mcp
                           ├─ tools/        generate_image, edit_image, generate_set (+ shared run/save loop)
                           ├─ providers/    interface + backends
                           │    ├─ codex-cli    (shells out to `codex exec`, uses the Codex sign-in)   done
@@ -180,13 +190,13 @@ Rules for the tools:
 Claude Code (local build, until it is on npm):
 
 ```sh
-claude mcp add imagegen -e IMAGEGEN_PROVIDER=codex-cli -- node /path/to/imagegen-mcp/dist/index.js
+claude mcp add images -e IMAGEGEN_PROVIDER=codex-cli -- node /path/to/codex-openai-image-mcp/dist/index.js
 ```
 
 After release:
 
 ```sh
-claude mcp add imagegen -e IMAGEGEN_PROVIDER=codex-cli -- npx -y imagegen-mcp
+claude mcp add images -e IMAGEGEN_PROVIDER=codex-cli -- npx -y codex-openai-image-mcp
 ```
 
 Settings (environment variables):
@@ -212,10 +222,11 @@ stay the same in an edit).
 4. **M3 – `generate_set`.** Matching sets in one call; Codex runs one session so the images share
    context, then each item is saved under its own name. **Done.**
 5. **M4 – OpenAI Images API backend.** For users without Codex; adds mask support for edits.
-   **Done**, tested against a fake client. Real-API check pending: on 2026-10-27 the key was
-   accepted but the account had no credits.
-6. **M5 – Release.** `list_providers`, per-session cost guard, README with screenshots, npm
-   publish, MCP registry listing, a short demo.
+   **Done**, tested against a fake client only. A live check reached the API (key accepted, account
+   without credits) and live testing was then skipped by decision; the README says so.
+6. **M5 – Release.** Done so far: name, MIT licence, public README with real examples, CI
+   (Linux and macOS, Node 20/22/24). Still to do: GitHub repo, npm publish, MCP registry listing;
+   nice to have: `list_providers`, per-session cost guard, an installer for more clients.
 7. **Later:** more providers (Gemini, Stability, a local model), background removal without a
    model call, upscaling, tileable textures, sprite sheets, a contact sheet to compare variants,
    optional size presets (app icons, social cards, favicons) for people who want them.
@@ -242,5 +253,4 @@ stay the same in an edit).
 - Default provider once the API backend exists: whichever is configured, or detect Codex sign-in
   vs `OPENAI_API_KEY` automatically?
 - Is the Codex backend safe to recommend publicly, given its terms and changing flags?
-- Licence: MIT is the usual choice for MCP servers.
 - Hosted version later, or local-only forever?
